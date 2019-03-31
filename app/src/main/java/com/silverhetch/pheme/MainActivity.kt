@@ -1,14 +1,17 @@
 package com.silverhetch.pheme
 
 import android.content.Context
-import android.graphics.Color
+import android.graphics.*
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.things.contrib.driver.sensehat.SenseHat
 import com.silverhetch.aura.storage.SPCeres
+import com.silverhetch.ourea.Device
+import com.silverhetch.ourea.Ourea
+import android.opengl.ETC1.getHeight
+import android.opengl.ETC1.getWidth
+import android.util.Log
 import com.silverhetch.ourea.OureaImpl
-import com.google.android.things.contrib.driver.sensehat.SenseHat;
-import com.google.android.things.contrib.driver.sensehat.LedMatrix
-
 
 
 /**
@@ -32,38 +35,50 @@ import com.google.android.things.contrib.driver.sensehat.LedMatrix
  *
  */
 class MainActivity : AppCompatActivity() {
-
+    private val display = SenseHat.openDisplay()
+    private val device = ArrayList<Device>()
+    private lateinit var ourea: Ourea
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        // Color the LED matrix.
-        val display = SenseHat.openDisplay()
-//        display.draw(Color.MAGENTA)
 
-        OureaImpl(
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ourea = OureaImpl(
             SPCeres(
                 getSharedPreferences(
                     "preference",
                     Context.MODE_PRIVATE
                 )
             )
-        ).run {
-            init()
-            addObserver { observable, data ->
-                data.forEach { t, u ->
-                    System.out.println(
-                        """ Device: ${u.ip()} ${u.isRegistered()}
-                """.trimIndent()
-                    )
-                    display.draw(
-                        Color.valueOf(
-                            (Math.random()*255).toFloat(),
-                            (Math.random()*255).toFloat(),
-                            (Math.random()*255).toFloat()
-                        ).toArgb()
-                    )
-                }
+        )
+        ourea.init()
+        ourea.addObserver { observable, data ->
+            device.clear()
+            device.addAll(data.values)
+            data.forEach { t, u ->
+                Log.i("MAIN", "device: " + u.ip())
             }
+
+            display.draw(
+                Color.valueOf(
+                    (Math.random()*255).toFloat(),
+                    (Math.random()*255).toFloat(),
+                    (Math.random()*255).toFloat()
+                ).toArgb()
+            )
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ourea.shutdown()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        display.close()
     }
 }
